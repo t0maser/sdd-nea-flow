@@ -171,14 +171,11 @@ Por defecto se usa OpenSpec como backend de artefactos.
 
 ## Estructura del repo
 
-- .opencode/opencode.json: orquestador nea-flow (OpenCode)
 - skills/: skills nea-flow y shared
-- .opencode/package.json: dependencia @opencode-ai/plugin
-- openspec/: template de artefactos (config.yaml, specs/, changes/archive/)
 - examples/opencode/: configuracion base para OpenCode
 - examples/amazonq/: configuracion base para Amazon Q
 - examples/vscode/: configuracion base para VS Code
-- scripts/: integracion automatizada
+- scripts/: instalacion automatizada
 
 ## Uso rapido
 
@@ -290,8 +287,8 @@ cp -r skills/_shared ./tu-proyecto/.vscode/skills/
 
 2. Agregar instrucciones del orquestador
 
-Crea un archivo `.instructions.md` en la carpeta de prompts del usuario y
-anexa las instrucciones de `examples/vscode/copilot-instructions.md`.
+Crea un archivo `copilot-instructions.md` en la carpeta de prompts del usuario
+y copia el contenido desde `examples/vscode/copilot-instructions.md`.
 
 Ruta recomendada de prompts:
 
