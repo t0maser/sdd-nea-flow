@@ -39,7 +39,7 @@ $RepoDir = Split-Path -Parent $ScriptRoot
 $SkillsSrc = Join-Path $RepoDir 'skills'
 
 $ToolPaths = @{
-    'opencode'      = Join-Path $env:APPDATA 'opencode\skills'
+    'opencode'      = Join-Path (Get-Location) '.opencode\skills'
     'amazonq'       = Join-Path '.' '.amazonq\rules'
     'vscode'        = Join-Path '.' '.vscode\skills'
     'project-local' = Join-Path '.' 'skills'
@@ -214,12 +214,15 @@ function Install-ForAgent {
     switch ($AgentName) {
         'opencode' {
             Install-Skills -TargetDir $ToolPaths['opencode'] -ToolName 'OpenCode'
-            Write-Host ''
-            Write-Host 'ACTION REQUIRED:' -ForegroundColor Yellow
-            Write-Host '  Copy the agent block from:' -ForegroundColor White
-            Write-Host '    examples\opencode\opencode.json' -ForegroundColor Cyan
-            Write-Host '  Into your:' -ForegroundColor White
-            Write-Host "    $env:APPDATA\opencode\opencode.json" -ForegroundColor Cyan
+            $opencodeDir = Join-Path (Get-Location) '.opencode'
+            $opencodeSrc = Join-Path $RepoDir 'examples\opencode\opencode.json'
+            if (Test-Path $opencodeSrc) {
+                New-Item -ItemType Directory -Path $opencodeDir -Force | Out-Null
+                Copy-Item -Path $opencodeSrc -Destination (Join-Path $opencodeDir 'opencode.json') -Force
+                Write-Skill '.opencode/opencode.json'
+            } else {
+                Write-Warn 'Missing examples\opencode\opencode.json'
+            }
         }
         'amazonq' {
             Install-Skills -TargetDir $ToolPaths['amazonq'] -ToolName 'Amazon Q'

@@ -219,12 +219,13 @@ Links rapidos:
 # Usando el instalador
 ./scripts/install.sh  # Opcion 1: OpenCode
 
-# O manualmente
-cp -r skills/flow-nea-* ~/.config/opencode/skills/
-cp -r skills/_shared ~/.config/opencode/skills/
+# O manualmente (local al proyecto)
+mkdir -p .opencode/skills
+cp -r skills/flow-nea-* .opencode/skills/
+cp -r skills/_shared .opencode/skills/
 ```
 
-2. Agregar el orquestador a `~/.config/opencode/opencode.json`
+2. Agregar el orquestador a `.opencode/opencode.json`
 
 Fusiona el bloque `agent` desde `examples/opencode/opencode.json`.
 

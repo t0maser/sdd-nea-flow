@@ -22,8 +22,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 SKILLS_SRC="${REPO_DIR}/skills"
 
-XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
-OPENCODE_SKILLS_DIR="${XDG_CONFIG_HOME}/opencode/skills"
+OPENCODE_SKILLS_DIR=".opencode/skills"
 
 TARGET_AGENT=""
 CUSTOM_PATH=""
@@ -163,12 +162,13 @@ install_for_agent() {
   case "$agent" in
     opencode)
       install_skills "$OPENCODE_SKILLS_DIR" "OpenCode"
-      echo ""
-      echo "ACTION REQUIRED:"
-      echo "  Copy the agent block from:"
-      echo "    examples/opencode/opencode.json"
-      echo "  Into your:"
-      echo "    ${XDG_CONFIG_HOME}/opencode/opencode.json"
+      if [[ -f "${REPO_DIR}/examples/opencode/opencode.json" ]]; then
+        mkdir -p .opencode
+        cp "${REPO_DIR}/examples/opencode/opencode.json" .opencode/opencode.json
+        ok ".opencode/opencode.json"
+      else
+        warn "Missing examples/opencode/opencode.json"
+      fi
       ;;
     amazonq)
       install_skills ".amazonq/rules" "Amazon Q"
@@ -191,10 +191,6 @@ install_for_agent() {
       ;;
     all-global)
       install_skills "$OPENCODE_SKILLS_DIR" "OpenCode"
-      echo ""
-      echo "Next steps:"
-      echo "  1. Add orchestrator agent to ${XDG_CONFIG_HOME}/opencode/opencode.json"
-      echo "     See: examples/opencode/opencode.json"
       ;;
     custom)
       if [[ -z "$CUSTOM_PATH" ]]; then
