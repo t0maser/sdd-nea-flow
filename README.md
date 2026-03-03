@@ -11,7 +11,7 @@
 
 Version: 1.0.3
 
-Links rapidos: [Indice](#indice) • [Instalacion](#instalacion) • [OpenCode](#opencode) • [Amazon Q](#amazon-q) • [VS Code](#vs-code)
+Links rapidos: [Indice](#indice) • [Instalacion](#instalacion) • [OpenCode](#opencode) • [Amazon Q](#amazon-q) • [Gemini CLI](#gemini-cli) • [Codex](#codex) • [VS Code](#vs-code)
 
 ## Indice
 
@@ -26,6 +26,8 @@ Links rapidos: [Indice](#indice) • [Instalacion](#instalacion) • [OpenCode](
 - [Instalacion por herramienta](#instalacion-por-herramienta)
 - [OpenCode](#opencode)
 - [Amazon Q](#amazon-q)
+- [Gemini CLI](#gemini-cli)
+- [Codex](#codex)
 - [VS Code](#vs-code)
 - [Persistencia de artefactos](#persistencia-de-artefactos)
 - [Especificaciones delta](#especificaciones-delta)
@@ -161,7 +163,7 @@ No hay alias del flujo anterior. El unico flujo soportado es nea-flow.
 
 ## Requisitos
 
-- OpenCode o Amazon Q
+- OpenCode, Amazon Q, Gemini CLI o Codex
 - Integracion del editor para orquestacion de skills
 - PowerShell (para scripts de integracion en Windows)
 
@@ -171,6 +173,8 @@ No hay alias del flujo anterior. El unico flujo soportado es nea-flow.
 - examples/opencode/: configuracion base para OpenCode
 - examples/amazonq/: configuracion base para Amazon Q
 - examples/vscode/: configuracion base para VS Code
+- examples/gemini-cli/: configuracion base para Gemini CLI
+- examples/codex/: configuracion base para Codex
 - scripts/: instalacion automatizada
 
 ## Instalacion
@@ -193,11 +197,15 @@ Guia por herramienta soportada:
 
 - OpenCode — Soporta sub-agentes via Task tool
 - Amazon Q — Soporta sub-agentes via Task tool
+- Gemini CLI — Ejecuta skills inline (sin sub-agentes reales)
+- Codex — Ejecuta skills inline (sin sub-agentes reales)
 - VS Code (Copilot) — Modo agente con archivos de contexto
 
 Links rapidos:
 - [OpenCode](#opencode)
 - [Amazon Q](#amazon-q)
+- [Gemini CLI](#gemini-cli)
+- [Codex](#codex)
 - [VS Code (Copilot)](#vs-code)
 
 ## OpenCode
@@ -267,6 +275,60 @@ Rutas por sistema operativo:
 3. Verificar
 
 Abre Amazon Q y ejecuta `/flow-nea-init`.
+
+## Gemini CLI
+
+1. Copiar las skills
+
+```bash
+# Usando el instalador
+./scripts/install.sh  # Opcion Gemini CLI
+
+# O manualmente
+mkdir -p ~/.gemini/skills
+cp -r skills/flow-nea-* ~/.gemini/skills/
+cp -r skills/_shared ~/.gemini/skills/
+```
+
+2. Agregar el orquestador a `~/.gemini/GEMINI.md`
+
+Anexa el contenido de `examples/gemini-cli/GEMINI.md` al archivo de prompt del sistema
+(crealo si no existe).
+
+Asegurate de tener `GEMINI_SYSTEM_MD=1` en `~/.gemini/.env` para que Gemini cargue el prompt.
+
+3. Verificar
+
+Abre Gemini CLI y ejecuta `/flow-nea-init`.
+
+Nota: Gemini CLI no tiene una Task tool nativa para delegacion de sub-agentes. Las skills
+se ejecutan inline y el orquestador las lee directamente.
+
+## Codex
+
+1. Copiar las skills
+
+```bash
+# Usando el instalador
+./scripts/install.sh  # Opcion Codex
+
+# O manualmente
+mkdir -p ~/.codex/skills
+cp -r skills/flow-nea-* ~/.codex/skills/
+cp -r skills/_shared ~/.codex/skills/
+```
+
+2. Agregar instrucciones del orquestador
+
+Agrega el contenido de `examples/codex/agents.md` a `~/.codex/agents.md`
+(o a tu `model_instructions_file` si lo configuraste).
+
+3. Verificar
+
+Abre Codex y ejecuta `/flow-nea-init`.
+
+Nota: Codex ejecuta las skills inline y no crea sub-agentes reales. Las fases de
+planificacion funcionan bien; el orquestador maneja la implementacion por lotes.
 
 ## VS Code
 

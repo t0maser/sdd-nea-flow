@@ -7,7 +7,7 @@ Usage: ./install.sh [OPTIONS]
 
 Options:
   -a, --agent NAME   Install for a specific agent (non-interactive)
-                     Valid: opencode, amazonq, vscode, project-local, all-global, custom
+                     Valid: opencode, amazonq, gemini-cli, codex, vscode, project-local, all-global, custom
   -p, --path DIR     Custom install path (use with --agent custom)
   -h, --help         Show help
 
@@ -163,6 +163,72 @@ install_amazonq_prompt() {
   ok "amazonq prompt (amazon-instructions.md)"
 }
 
+install_gemini_prompt() {
+  local gemini_dir="${HOME}/.gemini"
+  local prompt_src="${REPO_DIR}/examples/gemini-cli/GEMINI.md"
+  local prompt_target="${gemini_dir}/GEMINI.md"
+  local marker="ORQUESTADOR NEA FLOW"
+
+  if [[ ! -f "$prompt_src" ]]; then
+    err "Missing examples/gemini-cli/GEMINI.md"
+    exit 1
+  fi
+
+  mkdir -p "$gemini_dir"
+
+  if [[ -f "$prompt_target" ]] && grep -q "$marker" "$prompt_target"; then
+    warn "Prompt de Gemini CLI ya existe en GEMINI.md"
+    return
+  fi
+
+  if [[ -f "$prompt_target" ]]; then
+    printf "\n\n" >> "$prompt_target"
+    cat "$prompt_src" >> "$prompt_target"
+  else
+    cp "$prompt_src" "$prompt_target"
+  fi
+
+  if [[ ! -f "$prompt_target" ]]; then
+    warn "No se pudo verificar el prompt de Gemini CLI"
+    return
+  fi
+
+  ok "gemini CLI prompt (GEMINI.md)"
+}
+
+install_codex_prompt() {
+  local codex_dir="${HOME}/.codex"
+  local prompt_src="${REPO_DIR}/examples/codex/agents.md"
+  local prompt_target="${codex_dir}/agents.md"
+  local marker="ORQUESTADOR NEA FLOW"
+
+  if [[ ! -f "$prompt_src" ]]; then
+    err "Missing examples/codex/agents.md"
+    exit 1
+  fi
+
+  mkdir -p "$codex_dir"
+
+  if [[ -f "$prompt_target" ]] && grep -q "$marker" "$prompt_target"; then
+    warn "Prompt de Codex ya existe en agents.md"
+    return
+  fi
+
+  if [[ -f "$prompt_target" ]]; then
+    printf "\n\n" >> "$prompt_target"
+    cat "$prompt_src" >> "$prompt_target"
+  else
+    cp "$prompt_src" "$prompt_target"
+  fi
+
+  if [[ ! -f "$prompt_target" ]]; then
+    warn "No se pudo verificar el prompt de Codex"
+    return
+  fi
+
+  ok "codex prompt (agents.md)"
+}
+
 install_for_agent() {
   local agent="$1"
   case "$agent" in
@@ -183,6 +249,23 @@ install_for_agent() {
       warn "Skills instaladas en .amazonq/rules/"
       warn "Prompt instalado en ~/.aws/amazonq/prompts/amazon-instructions.md"
       echo "Siguiente paso: abre Amazon Q y ejecuta /flow-nea-init"
+      ;;
+    gemini-cli)
+      install_skills "${HOME}/.gemini/skills" "Gemini CLI"
+      install_gemini_prompt
+      echo ""
+      warn "Skills instaladas en ~/.gemini/skills"
+      warn "Prompt instalado en ~/.gemini/GEMINI.md"
+      warn "Asegura GEMINI_SYSTEM_MD=1 en ~/.gemini/.env"
+      echo "Siguiente paso: abre Gemini CLI y ejecuta /flow-nea-init"
+      ;;
+    codex)
+      install_skills "${HOME}/.codex/skills" "Codex"
+      install_codex_prompt
+      echo ""
+      warn "Skills instaladas en ~/.codex/skills"
+      warn "Prompt instalado en ~/.codex/agents.md"
+      echo "Siguiente paso: abre Codex y ejecuta /flow-nea-init"
       ;;
     vscode)
       install_skills ".vscode/skills" "VS Code (Copilot)"
@@ -223,20 +306,24 @@ show_menu() {
   echo ""
   echo "  1) OpenCode       (${OPENCODE_SKILLS_DIR})"
   echo "  2) Amazon Q       (.amazonq/rules)"
-  echo "  3) VS Code        (.vscode/skills)"
-  echo "  4) Project-local  (./skills)"
-  echo "  5) All global     (OpenCode)"
-  echo "  6) Custom path"
+  echo "  3) Gemini CLI     (~/.gemini/skills)"
+  echo "  4) Codex          (~/.codex/skills)"
+  echo "  5) VS Code        (.vscode/skills)"
+  echo "  6) Project-local  (./skills)"
+  echo "  7) All global     (OpenCode)"
+  echo "  8) Custom path"
   echo ""
 
-  read -r -p "Choice [1-6]: " choice
+  read -r -p "Choice [1-8]: " choice
   case "$choice" in
     1) install_for_agent opencode ;;
     2) install_for_agent amazonq ;;
-    3) install_for_agent vscode ;;
-    4) install_for_agent project-local ;;
-    5) install_for_agent all-global ;;
-    6) install_for_agent custom ;;
+    3) install_for_agent gemini-cli ;;
+    4) install_for_agent codex ;;
+    5) install_for_agent vscode ;;
+    6) install_for_agent project-local ;;
+    7) install_for_agent all-global ;;
+    8) install_for_agent custom ;;
     *)
       err "Invalid choice"
       exit 1
