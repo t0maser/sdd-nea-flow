@@ -22,7 +22,7 @@
 
 [CmdletBinding()]
 param(
-    [ValidateSet('opencode', 'amazonq', 'gemini-cli', 'codex', 'vscode', 'project-local', 'all-global', 'custom')]
+    [ValidateSet('opencode', 'amazonq', 'gemini-cli', 'codex', 'vscode', 'claude-code', 'project-local', 'all-global', 'custom')]
     [string]$Agent,
     [ValidateSet('local', 'global')]
     [string]$Scope,
@@ -107,7 +107,7 @@ function Show-Usage {
     Write-Host '  -Scope SCOPE   Scope for gemini-cli/codex (local or global)'
     Write-Host '  -Help          Show this help'
     Write-Host ''
-    Write-Host 'Agents: opencode, amazonq, gemini-cli, codex, vscode, project-local, all-global, custom'
+    Write-Host 'Agents: opencode, amazonq, gemini-cli, codex, vscode, claude-code, project-local, all-global, custom'
 }
 
 # ============================================================================
@@ -281,6 +281,73 @@ function Install-CodexPrompt {
     Write-Skill 'codex prompt (agents.md)'
 }
 
+function Resolve-ClaudeCodeDir {
+    param([string]$InstallScope)
+    if ($InstallScope -eq 'local') {
+        return Join-Path (Get-Location) '.claude'
+    }
+    return Join-Path $env:USERPROFILE '.claude'
+}
+
+function Install-ClaudeCodePrompt {
+    param([string]$InstallScope)
+
+    $claudeMdSrc = Join-Path $RepoDir 'examples\claude-code\CLAUDE.md'
+    $marker = 'FLOW-NEA ORCHESTRATOR'
+
+    if (-not (Test-Path $claudeMdSrc)) {
+        Write-Err 'Missing examples\claude-code\CLAUDE.md'
+        exit 1
+    }
+
+    if ($InstallScope -eq 'local') {
+        $claudeMdTarget = Join-Path (Get-Location) 'CLAUDE.md'
+    }
+    else {
+        $claudeDir = Join-Path $env:USERPROFILE '.claude'
+        New-Item -ItemType Directory -Path $claudeDir -Force | Out-Null
+        $claudeMdTarget = Join-Path $claudeDir 'CLAUDE.md'
+    }
+
+    if ((Test-Path $claudeMdTarget) -and ((Get-Content -Path $claudeMdTarget -Raw) -match $marker)) {
+        Write-Warn "Orchestrator instructions already exist in $claudeMdTarget"
+        return
+    }
+
+    if (Test-Path $claudeMdTarget) {
+        Add-Content -Path $claudeMdTarget -Value "`n`n$(Get-Content -Path $claudeMdSrc -Raw)"
+    }
+    else {
+        Copy-Item -Path $claudeMdSrc -Destination $claudeMdTarget -Force
+    }
+
+    if (-not (Test-Path $claudeMdTarget)) {
+        Write-Warn "Could not verify $claudeMdTarget"
+        return
+    }
+
+    Write-Skill "$claudeMdTarget (orchestrator instructions)"
+}
+
+function Install-ClaudeCodeCommands {
+    param([string]$TargetDir)
+
+    $commandsSrc = Join-Path $RepoDir 'examples\claude-code\commands'
+    $commandsTarget = Join-Path $TargetDir 'commands'
+
+    if (-not (Test-Path $commandsSrc)) {
+        Write-Warn 'Missing examples\claude-code\commands\'
+        return
+    }
+
+    New-Item -ItemType Directory -Path $commandsTarget -Force | Out-Null
+    $cmdFiles = Get-ChildItem -Path $commandsSrc -Filter '*.md'
+    foreach ($file in $cmdFiles) {
+        Copy-Item -Path $file.FullName -Destination $commandsTarget -Force
+    }
+    Write-Skill "$commandsTarget ($($cmdFiles.Count) commands)"
+}
+
 function Resolve-GeminiSkillsDir {
     param([string]$InstallScope)
     if ($InstallScope -eq 'local') {
@@ -360,6 +427,30 @@ function Install-ForAgent {
             Write-Warn 'Prompt instalado en %USERPROFILE%\.codex\agents.md'
             Write-Host 'Siguiente paso: abre Codex y ejecuta /flow-nea-init' -ForegroundColor Yellow
         }
+        'claude-code' {
+            $installScope = $Scope
+            if (-not $installScope) {
+                $installScope = Read-Host 'Scope (local/global)'
+            }
+            if ($installScope -ne 'local' -and $installScope -ne 'global') {
+                Write-Err 'Scope invalido. Usa local o global.'
+                exit 1
+            }
+            $claudeDir = Resolve-ClaudeCodeDir -InstallScope $installScope
+            Install-Skills -TargetDir (Join-Path $claudeDir 'skills') -ToolName 'Claude Code'
+            Install-ClaudeCodePrompt -InstallScope $installScope
+            Install-ClaudeCodeCommands -TargetDir $claudeDir
+            Write-Host ''
+            Write-Warn "Skills installed in $claudeDir\skills\"
+            Write-Warn "Commands installed in $claudeDir\commands\"
+            if ($installScope -eq 'local') {
+                Write-Warn 'Orchestrator instructions added to .\CLAUDE.md'
+            }
+            else {
+                Write-Warn "Orchestrator instructions added to $claudeDir\CLAUDE.md"
+            }
+            Write-Host 'Next step: open Claude Code and run /flow-nea-init' -ForegroundColor Yellow
+        }
         'vscode' {
             Install-Skills -TargetDir $ToolPaths['vscode'] -ToolName 'VS Code (Copilot)'
             Write-NextStep '.github\copilot-instructions.md' 'examples\vscode\copilot-instructions.md'
@@ -410,12 +501,13 @@ function Show-Menu {
     Write-Host "   3) Gemini CLI     (local o global)"
     Write-Host "   4) Codex          (local o global)"
     Write-Host "   5) VS Code        ($($ToolPaths['vscode']))"
-    Write-Host "   6) Project-local  ($($ToolPaths['project-local']))"
-    Write-Host '   7) All global     (OpenCode)'
-    Write-Host '   8) Custom path'
+    Write-Host '   6) Claude Code    (local o global)'
+    Write-Host "   7) Project-local  ($($ToolPaths['project-local']))"
+    Write-Host '   8) All global     (OpenCode)'
+    Write-Host '   9) Custom path'
     Write-Host ''
 
-    $choice = Read-Host 'Choice [1-8]'
+    $choice = Read-Host 'Choice [1-9]'
 
     $agentMap = @{
         '1' = 'opencode'
@@ -423,9 +515,10 @@ function Show-Menu {
         '3' = 'gemini-cli'
         '4' = 'codex'
         '5' = 'vscode'
-        '6' = 'project-local'
-        '7' = 'all-global'
-        '8' = 'custom'
+        '6' = 'claude-code'
+        '7' = 'project-local'
+        '8' = 'all-global'
+        '9' = 'custom'
     }
 
     if ($agentMap.ContainsKey($choice)) {

@@ -11,7 +11,7 @@
 
 Version: 1.4.0
 
-Links rapidos: [Indice](#indice) • [Instalacion](#instalacion) • [OpenCode](#opencode) • [Amazon Q](#amazon-q) • [Gemini CLI](#gemini-cli) • [Codex](#codex) • [VS Code](#vs-code)
+Links rapidos: [Indice](#indice) • [Instalacion](#instalacion) • [OpenCode](#opencode) • [Amazon Q](#amazon-q) • [Gemini CLI](#gemini-cli) • [Codex](#codex) • [Claude Code](#claude-code) • [VS Code](#vs-code)
 
 ## Indice
 
@@ -28,6 +28,7 @@ Links rapidos: [Indice](#indice) • [Instalacion](#instalacion) • [OpenCode](
 - [Amazon Q](#amazon-q)
 - [Gemini CLI](#gemini-cli)
 - [Codex](#codex)
+- [Claude Code](#claude-code)
 - [VS Code](#vs-code)
 - [Persistencia de artefactos](#persistencia-de-artefactos)
 - [Especificaciones delta](#especificaciones-delta)
@@ -163,7 +164,7 @@ No hay alias del flujo anterior. El unico flujo soportado es nea-flow.
 
 ## Requisitos
 
-- OpenCode, Amazon Q, Gemini CLI o Codex
+- OpenCode, Amazon Q, Gemini CLI, Codex o Claude Code
 - Integracion del editor para orquestacion de skills
 - PowerShell (para scripts de integracion en Windows)
 
@@ -175,6 +176,7 @@ No hay alias del flujo anterior. El unico flujo soportado es nea-flow.
 - examples/vscode/: configuracion base para VS Code
 - examples/gemini-cli/: configuracion base para Gemini CLI
 - examples/codex/: configuracion base para Codex
+- examples/claude-code/: configuracion base para Claude Code
 - scripts/: instalacion automatizada
 
 ## Instalacion
@@ -199,6 +201,7 @@ Guia por herramienta soportada:
 - Amazon Q — Soporta sub-agentes via Task tool
 - Gemini CLI — Ejecuta skills inline (sin sub-agentes reales)
 - Codex — Ejecuta skills inline (sin sub-agentes reales)
+- Claude Code — Soporta sub-agentes via Agent tool
 - VS Code (Copilot) — Modo agente con archivos de contexto
 
 Links rapidos:
@@ -206,6 +209,7 @@ Links rapidos:
 - [Amazon Q](#amazon-q)
 - [Gemini CLI](#gemini-cli)
 - [Codex](#codex)
+- [Claude Code](#claude-code)
 - [VS Code (Copilot)](#vs-code)
 
 ## OpenCode
@@ -343,6 +347,46 @@ Abre Codex y ejecuta `/flow-nea-init`.
 
 Nota: Codex ejecuta las skills inline y no crea sub-agentes reales. Las fases de
 planificacion funcionan bien; el orquestador maneja la implementacion por lotes.
+
+## Claude Code
+
+Claude Code (CLI de Anthropic) soporta delegacion real de sub-agentes via Agent tool,
+lo que permite que cada fase del flujo se ejecute con contexto fresco.
+
+1. Copiar las skills
+
+```bash
+# Usando el instalador
+./scripts/install.sh  # Opcion 6: Claude Code
+
+# O manualmente (local al proyecto)
+mkdir -p .claude/skills
+cp -r skills/flow-nea-* .claude/skills/
+cp -r skills/_shared .claude/skills/
+```
+
+2. Copiar los comandos (slash commands)
+
+```bash
+mkdir -p .claude/commands
+cp examples/claude-code/commands/*.md .claude/commands/
+```
+
+3. Agregar el orquestador a `CLAUDE.md`
+
+Copia el contenido de `examples/claude-code/CLAUDE.md` al archivo `CLAUDE.md` en la
+raiz del proyecto (o a `~/.claude/CLAUDE.md` para uso global).
+
+4. Verificar
+
+Abre Claude Code y ejecuta `/flow-nea-init`. Debe reconocer el comando.
+
+Como usar en Claude Code:
+
+- Abre Claude Code en tu proyecto: `claude`
+- Los comandos se registran automaticamente desde `.claude/commands/`
+- Ejecuta comandos: `/flow-nea-init`, `/flow-nea-propose <name>`, `/flow-nea-apply`, etc.
+- El Agent tool lanza sub-agentes con contexto fresco para cada fase
 
 ## VS Code
 
