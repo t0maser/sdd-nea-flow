@@ -15,7 +15,7 @@ Usage: $(basename "$0") [OPTIONS]
 
 Options:
   -a, --agent NAME   Install for a specific agent (non-interactive)
-                     Valid: opencode, amazonq, gemini-cli, codex, vscode, project-local, all-global, custom
+                     Valid: opencode, amazonq, gemini-cli, codex, vscode, claude-code, project-local, all-global, custom
   -s, --scope SCOPE  Scope for gemini-cli/codex (local or global)
   -p, --path DIR     Custom install path (use with --agent custom)
   -h, --help         Show help
@@ -275,6 +275,80 @@ install_codex_prompt() {
   log_info "codex prompt (agents.md)"
 }
 
+resolve_claude_code_dir() {
+  local scope="$1"
+  if [[ "$scope" == "local" ]]; then
+    echo "./.claude"
+    return
+  fi
+  local user_home
+  user_home="$(resolve_user_home)"
+  echo "${user_home}/.claude"
+}
+
+install_claude_code_prompt() {
+  local scope="$1"
+  local claude_md_src="${REPO_DIR}/examples/claude-code/CLAUDE.md"
+
+  if [[ ! -f "$claude_md_src" ]]; then
+    log_error "Missing examples/claude-code/CLAUDE.md"
+    exit 1
+  fi
+
+  local claude_md_target
+  if [[ "$scope" == "local" ]]; then
+    claude_md_target="./CLAUDE.md"
+  else
+    local user_home
+    user_home="$(resolve_user_home)"
+    claude_md_target="${user_home}/.claude/CLAUDE.md"
+  fi
+
+  local marker="FLOW-NEA ORCHESTRATOR"
+
+  if [[ -f "$claude_md_target" ]] && grep -q "$marker" "$claude_md_target"; then
+    log_warn "Orchestrator instructions already exist in $(basename "$claude_md_target")"
+    return
+  fi
+
+  if [[ "$scope" == "global" ]]; then
+    local parent_dir
+    parent_dir="$(dirname "$claude_md_target")"
+    mkdir -p "$parent_dir"
+  fi
+
+  if [[ -f "$claude_md_target" ]]; then
+    printf "\n\n" >> "$claude_md_target"
+    cat "$claude_md_src" >> "$claude_md_target"
+  else
+    cp "$claude_md_src" "$claude_md_target"
+  fi
+
+  if [[ ! -f "$claude_md_target" ]]; then
+    log_warn "Could not verify $(basename "$claude_md_target")"
+    return
+  fi
+
+  log_info "${claude_md_target} (orchestrator instructions)"
+}
+
+install_claude_code_commands() {
+  local target_dir="$1"
+  local commands_src="${REPO_DIR}/examples/claude-code/commands"
+  local commands_target="${target_dir}/commands"
+
+  if [[ ! -d "$commands_src" ]]; then
+    log_warn "Missing examples/claude-code/commands/"
+    return
+  fi
+
+  mkdir -p "$commands_target"
+  cp "${commands_src}"/*.md "$commands_target/"
+  local cmd_count
+  cmd_count=$(find "$commands_src" -type f -name '*.md' 2>/dev/null | wc -l | tr -d ' ')
+  log_info "${commands_target}/ (${cmd_count} commands)"
+}
+
 resolve_user_home() {
   if [[ -n "${HOME:-}" ]]; then
     echo "${HOME}"
@@ -371,6 +445,29 @@ install_for_agent() {
       log_warn "Prompt instalado en ~/.codex/agents.md"
       printf "Siguiente paso: abre Codex y ejecuta /flow-nea-init\n"
       ;;
+    claude-code)
+      if [[ -z "$SCOPE" ]]; then
+        read -p "Scope (local/global): " SCOPE
+      fi
+      if [[ "$SCOPE" != "local" && "$SCOPE" != "global" ]]; then
+        log_error "Scope invalido. Usa local o global."
+        exit 1
+      fi
+      local claude_dir
+      claude_dir="$(resolve_claude_code_dir "$SCOPE")"
+      install_skills "${claude_dir}/skills" "Claude Code"
+      install_claude_code_prompt "$SCOPE"
+      install_claude_code_commands "$claude_dir"
+      printf "\n"
+      log_warn "Skills installed in ${claude_dir}/skills/"
+      log_warn "Commands installed in ${claude_dir}/commands/"
+      if [[ "$SCOPE" == "local" ]]; then
+        log_warn "Orchestrator instructions added to ./CLAUDE.md"
+      else
+        log_warn "Orchestrator instructions added to ${claude_dir}/CLAUDE.md"
+      fi
+      printf "Next step: open Claude Code and run /flow-nea-init\n"
+      ;;
     vscode)
       install_skills ".vscode/skills" "VS Code (Copilot)"
       printf "\n"
@@ -440,21 +537,23 @@ show_menu() {
   printf "  3) Gemini CLI     (local o global)\n"
   printf "  4) Codex          (local o global)\n"
   printf "  5) VS Code        (.vscode/skills)\n"
-  printf "  6) Project-local  (./skills)\n"
-  printf "  7) All global     (%s)\n" "${all_global_dir}"
-  printf "  8) Custom path\n"
+  printf "  6) Claude Code    (local o global)\n"
+  printf "  7) Project-local  (./skills)\n"
+  printf "  8) All global     (%s)\n" "${all_global_dir}"
+  printf "  9) Custom path\n"
   printf "\n"
 
-  read -p "Choice [1-8]: " choice
+  read -p "Choice [1-9]: " choice
   case "$choice" in
     1) install_for_agent opencode ;;
     2) install_for_agent amazonq ;;
     3) install_for_agent gemini-cli ;;
     4) install_for_agent codex ;;
     5) install_for_agent vscode ;;
-    6) install_for_agent project-local ;;
-    7) install_for_agent all-global ;;
-    8) install_for_agent custom ;;
+    6) install_for_agent claude-code ;;
+    7) install_for_agent project-local ;;
+    8) install_for_agent all-global ;;
+    9) install_for_agent custom ;;
     *)
       log_error "Invalid choice"
       exit 1
